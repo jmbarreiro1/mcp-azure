@@ -219,6 +219,29 @@ class OllamaClient:
 import subprocess
 import re
 from typing import List, Dict, Any, Optional, Union
+from azure.identity import ClientSecretCredential
+from azure.mgmt.resource import ResourceManagementClient
+from azure.mgmt.compute import ComputeManagementClient
+from azure.mgmt.storage import StorageManagementClient
+from azure.mgmt.network import NetworkManagementClient
+from config import settings
+
+# Initialize Azure credential using values from .env file
+credential = ClientSecretCredential(
+    tenant_id=settings.AZURE_TENANT_ID,
+    client_id=settings.AZURE_CLIENT_ID,
+    client_secret=settings.AZURE_CLIENT_SECRET
+)
+
+# Initialize Azure Management clients
+resource_client = ResourceManagementClient(credential, settings.AZURE_SUBSCRIPTION_ID)
+compute_client = ComputeManagementClient(credential, settings.AZURE_SUBSCRIPTION_ID)
+storage_client = StorageManagementClient(credential, settings.AZURE_SUBSCRIPTION_ID)
+network_client = NetworkManagementClient(credential, settings.AZURE_SUBSCRIPTION_ID)
+
+import subprocess
+import re
+from typing import List, Dict, Any, Optional, Union
 from config import settings
 
 class LLMService:
@@ -245,33 +268,53 @@ class LLMService:
                     "success": False
                 }
             
-            # Set the subscription ID
-            set_sub_cmd = f"az account set --subscription {settings.AZURE_SUBSCRIPTION_ID}"
-            set_sub_result = subprocess.run(set_sub_cmd.split(), capture_output=True, text=True)
-            
-            if set_sub_result.returncode != 0:
+            args = command.split()
+            if len(args) < 2 or args[0] != 'az':
                 return {
                     "command": command,
                     "stdout": "",
-                    "stderr": f"Failed to set subscription: {set_sub_result.stderr}",
-                    "returncode": set_sub_result.returncode,
+                    "stderr": "Invalid Azure CLI command format",
+                    "returncode": 1,
                     "success": False
                 }
             
-            # Add subscription ID to the command if it's a resource-related command
-            if 'az resource' in command.lower() or 'az group' in command.lower():
-                command = f"{command} --subscription {settings.AZURE_SUBSCRIPTION_ID}"
-            
-            # Execute the actual command
-            args = command.split()
-            result = subprocess.run(args, capture_output=True, text=True)
+            # Get the Azure Management API client based on the command
+            if args[1] == 'resource':
+                if args[2] == 'list':
+                    resources = resource_client.resources.list()
+                    return {
+                        "command": command,
+                        "stdout": json.dumps([r.as_dict() for r in resources], indent=2),
+                        "stderr": "",
+                        "returncode": 0,
+                        "success": True
+                    }
+                elif args[2] == 'show':
+                    resource = resource_client.resources.get_by_id(args[3], args[4])
+                    return {
+                        "command": command,
+                        "stdout": json.dumps(resource.as_dict(), indent=2),
+                        "stderr": "",
+                        "returncode": 0,
+                        "success": True
+                    }
+            elif args[1] == 'group':
+                if args[2] == 'list':
+                    groups = resource_client.resource_groups.list()
+                    return {
+                        "command": command,
+                        "stdout": json.dumps([g.as_dict() for g in groups], indent=2),
+                        "stderr": "",
+                        "returncode": 0,
+                        "success": True
+                    }
             
             return {
                 "command": command,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "returncode": result.returncode,
-                "success": result.returncode == 0
+                "stdout": "",
+                "stderr": f"Unsupported Azure CLI operation: {command}",
+                "returncode": 1,
+                "success": False
             }
         except Exception as e:
             logger.error(f"Error executing Azure command: {str(e)}")
