@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Azure Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/chat.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold">MCP Azure Analysis</h1>
+                    <div id="status" class="flex items-center">
+                        <span class="h-3 w-3 rounded-full bg-green-400 mr-2"></span>
+                        <span>Connected</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Resources Panel -->
+                <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold">Azure Resources</h2>
+                        <button id="refreshBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center">
+                            <i class="fas fa-sync-alt mr-2"></i> Refresh
+                        </button>
+                    </div>
+
+
+                      <!-- Chat Interface -->
+                <div class="lg:col-span-2 mt-8">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-semibold mb-4">Azure AI Assistant</h2>
+                        <div class="chat-container">
+                            <div id="chatMessages" class="chat-messages">
+                                <div class="message assistant">
+                                    Hello! I'm your Azure AI Assistant. Ask me anything about your Azure resources.
+                                    You can ask questions like:
+                                    <ul class="list-disc pl-5 mt-2 space-y-1">
+                                        <li>What resources do I have deployed?</li>
+                                        <li>Are there any security concerns with my setup?</li>
+                                        <li>How can I optimize my Azure costs?</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div id="thinkingIndicator" class="thinking" style="display: none;">
+                                <div class="typing-indicator">
+                                    <span class="typing-dot"></span>
+                                    <span class="typing-dot"></span>
+                                    <span class="typing-dot"></span>
+                                </div>
+                                <span>Thinking...</span>
+                            </div>
+                            <div class="chat-input-container">
+                                <div class="chat-input">
+                                    <input 
+                                        type="text" 
+                                        id="chatInput" 
+                                        placeholder="Ask about your Azure resources..."
+                                        class="flex-1"
+                                    >
+                                    <button id="sendButton" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                        <i class="fas fa-paper-plane mr-2"></i>Send
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="py-2 px-4 text-left">Name</th>
+                                    <th class="py-2 px-4 text-left">Type</th>
+                                    <th class="py-2 px-4 text-left">Resource Group</th>
+                                    <th class="py-2 px-4 text-left">Location</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resourcesTableBody" class="divide-y divide-gray-200">
+                                <!-- Resources will be loaded here -->
+                                <tr>
+                                    <td colspan="4" class="py-4 text-center text-gray-500">Loading resources...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Analysis Panel -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 class="text-xl font-semibold mb-4">Resource Analysis</h2>
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-medium">Total Resources</span>
+                                    <span id="totalResources" class="font-bold text-blue-700">0</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div id="optimizationBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Optimization Potential: <span id="optimizationPotential">0</span>%</p>
+                            </div>
+                            <div>
+                                <h3 class="font-medium mb-2">Recommendations</h3>
+                                <ul id="recommendationsList" class="space-y-2 max-h-64 overflow-y-auto">
+                                    <li class="text-sm text-gray-600">No recommendations available</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/chat.js"></script>
+    <script>
+        // Initialize syntax highlighting
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightBlock(block);
+            });
+        });
+    </script>
+</body>
+</html>
