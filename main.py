@@ -15,6 +15,7 @@ import logging
 
 from config import settings, get_settings
 from llm_service import llm_service
+from azure_clients import clients
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,18 +36,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Azure clients
-# Use Azure CLI credentials for local development
-from azure.identity import AzureCliCredential, DefaultAzureCredential
-
-from azure.identity import ClientSecretCredential
-
 # Initialize Azure credential using values from .env file
-credential = ClientSecretCredential(
-    tenant_id=settings.AZURE_TENANT_ID,
-    client_id=settings.AZURE_CLIENT_ID,
-    client_secret=settings.AZURE_CLIENT_SECRET
-)
+credential = clients['credential']
 
 # Test the credential
 try:
@@ -57,10 +48,10 @@ except Exception as e:
     raise HTTPException(status_code=500, detail="Failed to initialize Azure credentials")
 
 # Initialize the clients
-resource_client = ResourceManagementClient(credential, settings.AZURE_SUBSCRIPTION_ID)
-compute_client = ComputeManagementClient(credential, settings.AZURE_SUBSCRIPTION_ID)
-storage_client = StorageManagementClient(credential, settings.AZURE_SUBSCRIPTION_ID)
-network_client = NetworkManagementClient(credential, settings.AZURE_SUBSCRIPTION_ID)
+resource_client = clients['resource_client']
+compute_client = clients['compute_client']
+storage_client = clients['storage_client']
+network_client = clients['network_client']
 
 # Models
 class Resource(BaseModel):
